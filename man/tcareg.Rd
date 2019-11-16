@@ -8,10 +8,10 @@ tcareg(X, tca.mdl, y, C3 = NULL, test = "marginal",
   null_model = NULL, alternative_model = NULL, save_results = TRUE,
   output = "TCA", sort_results = TRUE, parallel = FALSE,
   num_cores = NULL, log_file = "TCA.log", features_metadata = NULL,
-  debug = FALSE)
+  debug = FALSE, verbose = TRUE)
 }
 \arguments{
-\item{X}{An \code{m} by \code{n} matrix of measurements of \code{m} features for \code{n} observations. Each column in \code{X} is assumed to be a mixture of \code{k} different sources. Note that \code{X} must include row names and column names and that NA values are currently not supported.}
+\item{X}{An \code{m} by \code{n} matrix of measurements of \code{m} features for \code{n} observations. Each column in \code{X} is assumed to be a mixture of \code{k} different sources. Note that \code{X} must include row names and column names and that NA values are currently not supported. \code{X} should not include features that are constant across all observations.}
 
 \item{tca.mdl}{The value returned by applying the function \code{tca} to \code{X}.}
 
@@ -35,11 +35,13 @@ tcareg(X, tca.mdl, y, C3 = NULL, test = "marginal",
 
 \item{num_cores}{A numeric value indicating the number of cores to use (activated only if \code{parallel == TRUE}). If \code{num_cores == NULL} then all available cores except for one will be used.}
 
-\item{log_file}{A path to an output log file. Note that if the file \code{log_file} already exists then logs will be appended to the end of the file. Set \code{log_file} to \code{NULL} to prevent output from being saved into a file.}
+\item{log_file}{A path to an output log file. Note that if the file \code{log_file} already exists then logs will be appended to the end of the file. Set \code{log_file} to \code{NULL} to prevent output from being saved into a file; note that if \code{verbose == TRUE} then no output file will be generated regardless of the value of \code{log_file}.}
 
 \item{features_metadata}{A path to a csv file containing metadata about the features in \code{X} that will be added to the output files (activated only if \code{save_results == TRUE}). Each row in the metadata file should correspond to one feature (with the row name being the feature identifier, as it appears in the rows of \code{X}) and each column should correspond to one metadata descriptor (with an appropriate column name). Features that do not exist in \code{X} will be ignored and features in \code{X} with missing metadata information will show missing values.}
 
 \item{debug}{A logical value indicating whether to set the logger to a more detailed debug level; please set \code{debug} to \code{TRUE} before reporting issues.}
+
+\item{verbose}{A logical value indicating whether to print logs.}
 }
 \value{
 A list with the results of applying the TCA regression model to each of the features in the data. If \code{test == 'marginal'} or \code{test == 'marginal_conditional'} then a list of \code{k} such lists of results are returned, one for the results of each source.
@@ -58,7 +60,7 @@ A list with the results of applying the TCA regression model to each of the feat
 TCA regression allows to test for several types of statistical relations between source-specific values and an outcome of interest. For example, in the context of tissue-level bulk DNA methylation data coming from a mixture of cell types (i.e. the input is methylation sites by individuals), \code{tcareg} allows to test for cell-type-specific effects of methylation on an outcome of interest.
 }
 \details{
-TCA models \eqn{Z_{hj}^i} as the source-specific value of observation \eqn{i} in feature \eqn{j} coming from source \eqn{h} (see \link{tca} for more details). A TCA regression model tests an outcome \eqn{Y} for a linear statistical relationwith the source-specific values of a feature \eqn{j} by assuming: \deqn{Y_i = \sum_{h=1}^k \beta_{hj} Z_{hj}^i + e_i} where \eqn{e_i \sim N(0,\phi^2)}. In practice, \code{tcareg} fits this model using the conditional distribution \eqn{Y|X}, which, effectively, integrates over the latent \eqn{Z_{hj}^i} parameters. Statistical significance is then calculated using a likelihood ratio test (LRT). Note that the null and alternative models will be set automatically, except when \code{test == 'custom'}, in which case they will be set according to the user-specified null and alternative hypotheses.
+TCA models \eqn{Z_{hj}^i} as the source-specific value of observation \eqn{i} in feature \eqn{j} coming from source \eqn{h} (see \link{tca} for more details). A TCA regression model tests an outcome \eqn{Y} for a linear statistical relation with the source-specific values of a feature \eqn{j} by assuming: \deqn{Y_i = \sum_{h=1}^k \beta_{hj} Z_{hj}^i + e_i} where \eqn{e_i \sim N(0,\phi^2)}. In practice, \code{tcareg} fits this model using the conditional distribution \eqn{Y|X}, which, effectively, integrates over the latent \eqn{Z_{hj}^i} parameters. Statistical significance is then calculated using a likelihood ratio test (LRT). Note that the null and alternative models will be set automatically, except when \code{test == 'custom'}, in which case they will be set according to the user-specified null and alternative hypotheses.
 
 Under the TCA regression model, several statistical tests can be performed by setting the argument \code{test} according to one of the following options.
 
@@ -83,7 +85,7 @@ k <- 3
 p1 <- 1
 p2 <- 1
 data <- test_data(n, m, k, p1, p2, 0.01)
-tca.mdl <- tca(data$X, data$W, data$C1, data$C2)
+tca.mdl <- tca(X = data$X, W = data$W, C1 = data$C1, C2 = data$C2)
 y <- matrix(rexp(n, rate=.1), ncol=1)
 # joint test:
 res1 <- tcareg(data$X, tca.mdl, y, test = "joint", save_results = FALSE)
